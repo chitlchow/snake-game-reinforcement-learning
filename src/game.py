@@ -39,7 +39,9 @@ class SnakeGame:
                     pygame.draw.rect(self.game_surface, (84,194,205), rr)
 
     def step(self):
-        pygame.display.flip()
+        self.draw_grid()
+        self.game_display.blit(self.game_surface, (0, 0))
+        pygame.display.update()
 
     def reset(self):
         self.score = 0
