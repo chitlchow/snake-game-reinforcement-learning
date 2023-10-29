@@ -5,4 +5,11 @@
 </div>
 
 ## Introduction
-This project has trained an agent for snake game using Q-learning algorithms.
+This project trains the Q-learning agent using the vanilla q-learning algorithm. 
+- `agent.py`: Q-learning agent class
+- `game.py`: Game class
+- `main.py`: The main program for training the Q-learning agent using Bellman's equation
+
+You can test-run the program by running the `test-script.py`. Pickle files are stored inside the `pickles` folder.
+
+Enjoy :smile:
