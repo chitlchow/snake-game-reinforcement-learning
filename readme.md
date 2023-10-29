@@ -5,4 +5,4 @@
 </div>
 
 ## Introduction
-This project is based on 
+This project has trained an agent for snake game using Q-learning algorithms.
