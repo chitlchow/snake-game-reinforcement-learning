@@ -21,8 +21,8 @@ class QLAgent:
         self.gamma = gamma
 
         self.alpha = alpha
-        self.alpha_0 = alpha
-        self.alpha_decay = 0.0012
+        # self.alpha_0 = alpha
+        # self.alpha_decay = 0.0012
 
     def update_q_value(self ,current_state, new_state, reward, action):
         """
@@ -53,6 +53,6 @@ class QLAgent:
         """
         self.epsilon *= self.epsilon_decay
 
-    def update_alpha(self, ep):
-        """Learning rate scheduling using exponential decay"""
-        self.alpha = self.alpha_0 * np.exp(-self.alpha_decay*ep)
+    # def update_alpha(self, ep):
+    #     """Learning rate scheduling using exponential decay"""
+    #     self.alpha = self.alpha_0 * np.exp(-self.alpha_decay*ep)
