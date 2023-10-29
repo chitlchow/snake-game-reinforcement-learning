@@ -8,37 +8,55 @@ right = (1, 0)
 left = (-1, 0)
 
 class SnakeGame:
-    # Properties of the game: width, height,
+    """Properties of the game: width, height, graphics and speed of the game"""
     def __init__(self, board_width: int, board_height: int, enable_graphics: bool, game_speed = 10000):
+        # Define the game board dimensions
         self.board_width = board_width
         self.board_height = board_height
         self.grid_size = 20
 
+        # Display properties
         self.enable_graphics = enable_graphics
         self.game_speed = game_speed
         self.game_display = None
         self.game_surface = None
+
+        # Game runtime
         self.game_clock = pygame.time.Clock()
+
+        # In-game objects
         self.snake = Snake(self.board_width, self.board_height)
         self.apple = Apple(self.board_width, self.board_height)
 
+        # Game control variables
         self.score = 0
         self.running = False
 
     def start(self):
-        self.running = True
-        if self.enable_graphics:
+        """Function to start the game module"""
+        self.running = True     # set running to True
+        if self.enable_graphics:    # Enable graphics
             self.init_graphics()
 
+
     def init_graphics(self):
+        """
+        Initialize Graphics component
+        """
+        # Setup display
         self.game_display = pygame.display.set_mode(
                 (self.board_width * self.grid_size, self.board_height * self.grid_size)
             )
+        # Display caption
         pygame.display.set_caption(f"Snake Game, Score: {self.score}")
+        # Game board surface
         self.game_surface = pygame.Surface(self.game_display.get_size())
         self.game_surface.convert()
 
     def draw_grid(self):
+        """
+        Draw the grid of the game
+        """
         for y in range(0, int(self.board_height)):
             for x in range(0, int(self.board_width)):
                 if (x+y)%2 == 0:
@@ -49,6 +67,10 @@ class SnakeGame:
                     pygame.draw.rect(self.game_surface, (84,194,205), rr)
 
     def move_snake(self):
+        """
+        Move the snake with its current direction
+        """
+        # Get the snake position
         current_pos = self.snake.get_head_pos()
         x_dir, y_dir = self.snake.direction
         new_pos = (
@@ -75,10 +97,23 @@ class SnakeGame:
             pygame.draw.rect(self.game_surface, (93, 216, 228), r, 1)
 
     def draw_apple(self):
+        """
+        Draw the apple with its given position on screen
+        :return:
+        """
         rect = pygame.Rect((self.apple.position[0]*self.grid_size, self.apple.position[1]*self.grid_size), (self.grid_size, self.grid_size))
         pygame.draw.rect(self.game_surface, self.snake.color, rect)
 
     def get_states(self):
+        """
+        Return the current states of the game environment
+        :return:
+        A tuple consist of 11 state variables, including:
+        - Current Directions (4)
+        - Dangers nearby (3, relative to the head position)
+        - Relative position between the food and the snake (4)
+
+        """
         state = []
         # Current direction as state
         directions = [up, down, left, right]
@@ -95,7 +130,10 @@ class SnakeGame:
         return tuple(state)
 
     def check_dangers(self):
-        # Encode dangers as states: front, left and right
+        """
+        Encode dangers as states: front, left and right
+        :return: list of 3 integers (either 0 or 1, 0 means none and 1 means there is a close danger in the subsequent direction)
+        """
         # head position
         x, y = self.snake.positions[0]
 
@@ -141,6 +179,10 @@ class SnakeGame:
         return dangers
 
     def relative_position(self):
+        """
+        Check the relative position of the apple on the board
+        :return:
+        """
         head_pos = self.snake.positions[0]
         food_pos = self.apple.position
 
@@ -170,27 +212,39 @@ class SnakeGame:
         return [int(food_up), int(food_down), int(food_right), int(food_left)]
 
     def step(self):
-        # Actions
+        """
+        Proceed the game with all other steps
+        :return: Reward of action determine by the environment state
+        """
+        # Move the snake
         crash = self.move_snake()
         if crash:
+            # -10 reward if crashed
             self.running = False
             reward = -10
         elif self.scored():
+            # 1 reward if scored
             self.score += 1
             reward = 1
             pygame.display.set_caption(f"Snake Game, Score: {self.score}")
         else:
+            # 0 reward if nothing happened
             reward = 0
+        # Execute if graphics is enabled
         if self.enable_graphics:
             self.draw_grid()
             self.draw_snake()
             self.draw_apple()
             self.game_display.blit(self.game_surface, (0, 0))
             pygame.display.update()
+        # Turn the clock
         self.game_clock.tick(self.game_speed)
         return reward
 
     def reset(self):
+        """
+        Reset the game
+        """
         self.running = False
         self.score = 0
         pygame.display.set_caption(f"Snake Game, Score: {self.score}")
@@ -199,15 +253,12 @@ class SnakeGame:
 
 
     def scored(self):
+        """Determine if the snake has scored"""
         if self.snake.positions[0] == self.apple.position:
             self.apple.new_random_position()
             self.snake.length += 1
             return True
         return False
-
-    def termininate(self):
-        self.reset()
-
 
 class Apple:
     def __init__(self, board_width: int, board_height: int):
@@ -219,7 +270,6 @@ class Apple:
     def new_random_position(self):
         self.position = (random.randint(0, self.board_width - 1),random.randint(0, self.board_height - 1))
 
-
 class Snake:
     def __init__(self, board_width: int, board_height: int):
         self.board_width = board_width
@@ -228,23 +278,24 @@ class Snake:
         self.positions = [(board_width//2, board_height//2)]
         self.color = (17, 24, 47)
         self.length = 1
+
     def get_position(self):
         return self.positions
 
     def get_direction(self):
         return self.direction
+
     def get_head_pos(self):
         return self.positions[0]
 
     def turn(self, action):
-        # Turning Right
-
         turn_dict = {
             0: "turn_right",
             1: "turn_left",
             2: "forward"
         }
         action = turn_dict[action]
+        # Set direction if turning right
         if action == 'turn_right':
             if self.direction == up:
                 self.direction = right
