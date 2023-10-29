@@ -1,14 +1,15 @@
 from src.game import SnakeGame
-from src.agent import RLAgent
+from src.agent import QLAgent
 import pickle
-import numpy as np
 import pygame
-game = SnakeGame(20, 20, enable_graphics=True, game_speed=10)
+
+# Initialize the game interface
+game = SnakeGame(10, 10, enable_graphics=True, game_speed=30)
 enable_update = True
 
-with open('pickles/q-tables-highest-score-54.pkl', 'rb') as f:
+with open('pickles/q-tables-highest-score-44.pkl', 'rb') as f:
     params = pickle.load(f)
-    agent = RLAgent(alpha=params['alpha'], gamma=params['gamma'])
+    agent = QLAgent(alpha=params['alpha'], gamma=params['gamma'])
     agent.epsilon = 0
     agent.q_table = params['q_table']
 
