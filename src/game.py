@@ -13,7 +13,7 @@ class SnakeGame:
         # Define the game board dimensions
         self.board_width = board_width
         self.board_height = board_height
-        self.grid_size = 20
+        self.grid_size = 30
 
         # Display properties
         self.enable_graphics = enable_graphics
@@ -214,7 +214,7 @@ class SnakeGame:
     def step(self):
         """
         Proceed the game with all other steps
-        :return: Reward of action determine by the environment state
+        :return: Reward of action determine by the environment state and a boolean variable indicate if there were a crash
         """
         # Move the snake
         crash = self.move_snake()
