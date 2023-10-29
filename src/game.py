@@ -9,12 +9,13 @@ left = (-1, 0)
 
 class SnakeGame:
     # Properties of the game: width, height,
-    def __init__(self, board_width: int, board_height: int, enable_graphics: bool):
+    def __init__(self, board_width: int, board_height: int, enable_graphics: bool, game_speed = 10000):
         self.board_width = board_width
         self.board_height = board_height
         self.grid_size = 20
 
         self.enable_graphics = enable_graphics
+        self.game_speed = game_speed
         self.game_display = None
         self.game_surface = None
         self.game_clock = pygame.time.Clock()
@@ -23,6 +24,7 @@ class SnakeGame:
 
         self.score = 0
         self.running = False
+
     def start(self):
         self.running = True
         if self.enable_graphics:
@@ -32,7 +34,7 @@ class SnakeGame:
         self.game_display = pygame.display.set_mode(
                 (self.board_width * self.grid_size, self.board_height * self.grid_size)
             )
-        pygame.display.set_caption("Snake Game")
+        pygame.display.set_caption(f"Snake Game, Score: {self.score}")
         self.game_surface = pygame.Surface(self.game_display.get_size())
         self.game_surface.convert()
 
@@ -55,8 +57,8 @@ class SnakeGame:
         if len(self.snake.positions) > 2 and new_pos in self.snake.positions[2:]:
             return True
 
-        elif new_pos[0] > self.board_width \
-                or new_pos[1] > self.board_height \
+        elif new_pos[0] >= self.board_width \
+                or new_pos[1] >= self.board_height \
                 or new_pos[0] < 0 \
                 or new_pos[1] < 0:
             return True
@@ -71,57 +73,159 @@ class SnakeGame:
             r = pygame.Rect((p[0]*self.grid_size, p[1]*self.grid_size), (self.grid_size, self.grid_size))
             pygame.draw.rect(self.game_surface, self.snake.color, r)
             pygame.draw.rect(self.game_surface, (93, 216, 228), r, 1)
-    def draw_food(self):
+
+    def draw_apple(self):
         rect = pygame.Rect((self.apple.position[0]*self.grid_size, self.apple.position[1]*self.grid_size), (self.grid_size, self.grid_size))
         pygame.draw.rect(self.game_surface, self.snake.color, rect)
 
     def get_states(self):
-        states = []
+        state = []
+        # Current direction as state
         directions = [up, down, left, right]
         for d in directions:
-            states.append(int(self.snake.direction == d))
+            state.append(int(self.snake.direction == d))
 
+        # Danger as state
+        dangers = self.check_dangers()
+        state.extend(dangers)
 
-        return states
+        # relative position for
+        rel_pos = self.relative_position()
+        state.extend(rel_pos)
+        return tuple(state)
 
     def check_dangers(self):
-        x, y = self.snake.get_head_pos()
+        # Encode dangers as states: front, left and right
+        # head position
+        x, y = self.snake.positions[0]
+
+        # False by default for 3 kinds of dangers
+        danger_ahead = False
+        danger_right = False
+        danger_left = False
+
+        actions = [up, right, down, left]
+        # Check danger ahead
+        front_pos = (x + self.snake.direction[0], y + self.snake.direction[1])
+        # If it crash
+        if front_pos in self.snake.positions \
+                or front_pos[0] >= self.board_width \
+                or front_pos[1] >= self.board_height \
+                or front_pos[0] < 0 \
+                or front_pos[1] < 0:
+            danger_ahead = True
+
+        #  Check right
+        current_dir_index = actions.index(self.snake.direction)
+        right_step = actions[(current_dir_index + 1) % 4]
+        right_pos = (x + right_step[0], y + right_step[1])
+        if right_pos in self.snake.positions \
+                or right_pos[0] >= self.board_width \
+                or right_pos[1] >= self.board_height \
+                or right_pos[0] < 0 \
+                or right_pos[1] < 0:
+            danger_right = True
+
+        # Check left
+        left_step = actions[(current_dir_index - 1) % 4]
+        left_pos = (x + left_step[0], y + left_step[1])
+
+        if left_pos in self.snake.positions \
+                or left_pos[0] >= self.board_width \
+                or left_pos[1] >= self.board_height \
+                or left_pos[0] < 0 \
+                or left_pos[1] < 0:
+            danger_left = True
+
+        dangers = [int(danger_ahead), int(danger_right), int(danger_left)]
+        return dangers
+
+    def relative_position(self):
+        head_pos = self.snake.positions[0]
+        food_pos = self.apple.position
+
+        # Compute the difference in coordinates
+        delta_x = head_pos[0] - food_pos[0]
+        delta_y = head_pos[0] - food_pos[0]
+
+        # Prepare variables
+        food_up = False
+        food_down = False
+        food_right = False
+        food_left = False
+
+        if delta_x < 0:
+            food_right = True
+            food_left = False
+        elif delta_x > 0:
+            food_right = False
+            food_left = True
+        if delta_y > 0:
+            food_up = False
+            food_down = True
+        elif delta_y < 0:
+            food_up = True
+            food_down = False
+
+        return [int(food_up), int(food_down), int(food_right), int(food_left)]
 
     def step(self):
         # Actions
-
         crash = self.move_snake()
-        self.draw_grid()
-        self.draw_snake()
-        self.draw_food()
-        self.game_display.blit(self.game_surface, (0, 0))
         if crash:
             self.running = False
-        pygame.display.update()
-        self.game_clock.tick(10)
+            reward = -10
+        elif self.scored():
+            self.score += 1
+            reward = 1
+            pygame.display.set_caption(f"Snake Game, Score: {self.score}")
+        else:
+            reward = 0
+        if self.enable_graphics:
+            self.draw_grid()
+            self.draw_snake()
+            self.draw_apple()
+            self.game_display.blit(self.game_surface, (0, 0))
+            pygame.display.update()
+        self.game_clock.tick(self.game_speed)
+        return reward
 
     def reset(self):
         self.running = False
         self.score = 0
-        self.snake = Snake(self.board_width, self.board_height)
+        pygame.display.set_caption(f"Snake Game, Score: {self.score}")
+        self.snake.reset()
+        self.apple.new_random_position()
+
+
+    def scored(self):
+        if self.snake.positions[0] == self.apple.position:
+            self.apple.new_random_position()
+            self.snake.length += 1
+            return True
+        return False
+
+    def termininate(self):
+        self.reset()
+
 
 class Apple:
     def __init__(self, board_width: int, board_height: int):
         self.board_width = board_width
         self.board_height = board_height
-        self.position = (random.randint(0, board_width),random.randint(0, board_height))
+        self.position = (random.randint(0, board_width - 1),random.randint(0, board_height - 1))
         self.color = (223, 163, 49)
 
     def new_random_position(self):
-        self.position = (random.randint(0, self.board_width),random.randint(0, self.board_height))
+        self.position = (random.randint(0, self.board_width - 1),random.randint(0, self.board_height - 1))
 
 
 class Snake:
-    def __init__(self, width, height):
-        self.x = width//2
-        self.y = height//2
+    def __init__(self, board_width: int, board_height: int):
+        self.board_width = board_width
+        self.board_height = board_height
         self.direction = random.choice([up, down, right, left])
-        self.positions = [((width/2), (height/2))]
+        self.positions = [(board_width//2, board_height//2)]
         self.color = (17, 24, 47)
         self.length = 1
     def get_position(self):
@@ -132,9 +236,16 @@ class Snake:
     def get_head_pos(self):
         return self.positions[0]
 
-    def turn(self, direction):
+    def turn(self, action):
         # Turning Right
-        if direction == 'turn_right':
+
+        turn_dict = {
+            0: "turn_right",
+            1: "turn_left",
+            2: "forward"
+        }
+        action = turn_dict[action]
+        if action == 'turn_right':
             if self.direction == up:
                 self.direction = right
             elif self.direction == down:
@@ -144,7 +255,7 @@ class Snake:
             elif self.direction == left:
                 self.direction = up
         # Turning Left
-        elif direction == 'turn_left':
+        elif action == 'turn_left':
             if self.direction == up:
                 self.direction = left
             elif self.direction == left:
@@ -156,4 +267,9 @@ class Snake:
         # Going forward (doing noting)
         else:
             self.direction
+
+    def reset(self):
+        self.positions = [(self.board_width//2, self.board_height//2)]
+        self.length = 1
+
 
