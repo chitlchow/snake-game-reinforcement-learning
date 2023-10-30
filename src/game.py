@@ -13,7 +13,7 @@ class SnakeGame:
         # Define the game board dimensions
         self.board_width = board_width
         self.board_height = board_height
-        self.grid_size = 30
+        self.grid_size = 20
 
         # Display properties
         self.enable_graphics = enable_graphics
@@ -95,6 +95,15 @@ class SnakeGame:
             r = pygame.Rect((p[0]*self.grid_size, p[1]*self.grid_size), (self.grid_size, self.grid_size))
             pygame.draw.rect(self.game_surface, self.snake.color, r)
             pygame.draw.rect(self.game_surface, (93, 216, 228), r, 1)
+
+    def move_apple(self):
+        done = False
+        while not done:
+            new_position = (random.randint(0, self.board_width - 1), random.randint(0, self.board_height - 1))
+            if new_position not in self.snake.positions:
+                self.apple.position = new_position
+                done = True
+
 
     def draw_apple(self):
         """
@@ -249,13 +258,13 @@ class SnakeGame:
         self.score = 0
         pygame.display.set_caption(f"Snake Game, Score: {self.score}")
         self.snake.reset()
-        self.apple.new_random_position()
+        self.move_apple()
 
 
     def scored(self):
         """Determine if the snake has scored"""
         if self.snake.positions[0] == self.apple.position:
-            self.apple.new_random_position()
+            self.move_apple()
             self.snake.length += 1
             return True
         return False
@@ -267,8 +276,8 @@ class Apple:
         self.position = (random.randint(0, board_width - 1),random.randint(0, board_height - 1))
         self.color = (223, 163, 49)
 
-    def new_random_position(self):
-        self.position = (random.randint(0, self.board_width - 1),random.randint(0, self.board_height - 1))
+    # def new_random_position(self):
+    #     self.position = (random.randint(0, self.board_width - 1),random.randint(0, self.board_height - 1))
 
 class Snake:
     def __init__(self, board_width: int, board_height: int):
